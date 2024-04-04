@@ -1,0 +1,10 @@
+add_executable(fastgltf_gl_viewer EXCLUDE_FROM_ALL)
+target_compile_features(fastgltf_gl_viewer PUBLIC cxx_std_17)
+target_link_libraries(fastgltf_gl_viewer PRIVATE fastgltf fg_glad_gl46)
+set(GLFW_DL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/glfw/")
+set(GLM_DL_FILE "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/glm/")
+add_library(glfw__ ${GLFW_DL_DIR} ${GLFW_DL_DIR})
+add_library(glm__ ${GLM_DL_FILE} ${GLM_DL_FILE})
+target_link_libraries(fastgltf_gl_viewer PRIVATE glfw__ glm__ stb)
+
+add_source_directory(TARGET fastgltf_gl_viewer FOLDER ".")
