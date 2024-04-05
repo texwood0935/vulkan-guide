@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <set>
 #include <vk_types.h>
 
 class VulkanEngine {
@@ -28,4 +29,20 @@ public:
 
 	//run main loop
 	void run();
+private:
+	void InitVulkan();
+	
+	void CreateInstance();
+	uint32_t GetSupportExtensions(std::vector<std::string>& extensions);
+	bool CheckSupportLayers();
+
+	void PickupPhysicalDevice();
+	void CreateLogicalDevice();
+	struct QueueFamilyIndices FindQueueFamily(enum QueueType Type);
+	//-----------------
+	//std::unique_ptr<VkInstance> VkIns = nullptr;
+	VkInstance VkIns;
+	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+	VkDevice Device = VK_NULL_HANDLE;
+	VkQueue graphicsQueue;
 };
