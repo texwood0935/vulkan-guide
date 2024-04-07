@@ -8,14 +8,22 @@
 
 struct QueueFamilyIndices
 {
-	std::optional<uint32_t> QueueIndex;
+	std::optional<uint32_t> GraphicIndex;
 
 	std::optional<uint32_t> PresentIndex;
 
-	bool IsQueueIndexComplete() { return QueueIndex.has_value(); }
+	bool IsQueueIndexComplete() { return GraphicIndex.has_value(); }
 	bool IsPresentIndexComplete() { return PresentIndex.has_value(); }
-	bool IsComplete() { return QueueIndex.has_value() && PresentIndex.has_value(); }
+	bool IsComplete() { return GraphicIndex.has_value() && PresentIndex.has_value(); }
 };
+
+struct FrameData
+{
+	VkCommandPool commandPool;
+	VkCommandBuffer mainCommmandBuffer;
+};
+
+constexpr unsigned int FRAME_OVERLAP = 2;
 
 class VulkanEngine {
 public:
@@ -40,6 +48,8 @@ public:
 
 	//run main loop
 	void run();
+
+	FrameData& GetCurrentFrame() { return frame[_frameNumber % FRAME_OVERLAP]; }
 private:
 	void InitVulkan();
 	
@@ -57,6 +67,8 @@ private:
 
 	void CreateSwapChain(uint32_t width, uint32_t height);
 	void DestroySwapChain();
+
+	void InitCommands();
 	//-----------------
 	//std::unique_ptr<VkInstance> VkIns = nullptr;
 	VkInstance VkIns;
@@ -75,4 +87,6 @@ private:
 	VkExtent2D _swapchainExtent;
 
 	struct QueueFamilyIndices indices;
+
+	FrameData frame[FRAME_OVERLAP];
 };

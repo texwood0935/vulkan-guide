@@ -28,4 +28,4 @@
             fmt::println("Detected Vulkan error: {}", string_VkResult(err)); \
             abort();                                                    \
         }                                                               \
-    } while (0)
+    } while (0);

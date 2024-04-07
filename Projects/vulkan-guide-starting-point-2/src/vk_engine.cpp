@@ -53,6 +53,11 @@ void VulkanEngine::cleanup()
 {
     if (_isInitialized) {
 
+        vkDeviceWaitIdle(Device);
+        for(int32_t i=0;i<FRAME_OVERLAP;i++)
+        {
+            vkDestroyCommandPool(Device,frame[i].commandPool,nullptr);
+        }
         vkDestroySurfaceKHR(VkIns, surface, nullptr);
         DestroySwapChain();
         vkDestroyDevice(Device, nullptr);
@@ -110,6 +115,7 @@ void VulkanEngine::InitVulkan()
     //PickupPhysicalDevice();
     //CreateLogicalDevice();
     CreateSwapChain(_windowExtent.width, _windowExtent.height);
+    InitCommands();
 }
 
 void VulkanEngine::CreateInstance()
@@ -203,10 +209,15 @@ void VulkanEngine::CreateInstance_Vkb()
     Device = vkbDevice.device;
     physicalDevice = physDevice.physical_device;
 
-    FindQueueFamily(QueueType::Graphics);
-    FindQueueFamily(QueueType::Surface);
-    vkGetDeviceQueue(Device, indices.QueueIndex.value(), 0, &graphicsQueue);
-    vkGetDeviceQueue(Device, indices.PresentIndex.value(), 0, &presentQueue);
+    indices.GraphicIndex = vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
+    indices.PresentIndex = vkbDevice.get_queue_index(vkb::QueueType::present).value();
+    graphicsQueue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
+    presentQueue = vkbDevice.get_queue(vkb::QueueType::present).value();
+
+    //FindQueueFamily(QueueType::Graphics);
+    //FindQueueFamily(QueueType::Surface);
+    //vkGetDeviceQueue(Device, indices.GraphicIndex.value(), 0, &graphicsQueue);
+    //vkGetDeviceQueue(Device, indices.PresentIndex.value(), 0, &presentQueue);
 }
 
 uint32_t VulkanEngine::GetSupportExtensions(std::vector<std::string>& extensions)
@@ -283,7 +294,7 @@ void VulkanEngine::CreateLogicalDevice()
         throw std::runtime_error("failed to create Queue!");
     }
     std::set<uint32_t> uniqueQueueFamilies = {
-        indices.QueueIndex.value(), indices.PresentIndex.value()
+        indices.GraphicIndex.value(), indices.PresentIndex.value()
     };
     std::vector<VkDeviceQueueCreateInfo> QueueCreateInfos;
     float queuePriority = 1.0f;
@@ -326,7 +337,7 @@ void VulkanEngine::CreateLogicalDevice()
     {
         throw std::runtime_error("failed to create vk logic device!");
     }
-    vkGetDeviceQueue(Device, indices.QueueIndex.value(), 0, &graphicsQueue);
+    vkGetDeviceQueue(Device, indices.GraphicIndex.value(), 0, &graphicsQueue);
     vkGetDeviceQueue(Device, indices.PresentIndex.value(), 0, &presentQueue);
 }
 
@@ -345,7 +356,7 @@ void VulkanEngine::FindQueueFamily(QueueType Type)
         case QueueType::Graphics:
             if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
             {
-                indices.QueueIndex = i;
+                indices.GraphicIndex = i;
                 break;
             }
         case QueueType::Surface:
@@ -361,7 +372,7 @@ void VulkanEngine::FindQueueFamily(QueueType Type)
 void VulkanEngine::CreateSwapChain(uint32_t width, uint32_t height)
 {
     vkb::SwapchainBuilder swapchainBuilder{ physicalDevice, Device, surface ,
-    indices.QueueIndex.value(), indices.PresentIndex.value()
+    indices.GraphicIndex.value(), indices.PresentIndex.value()
     };
 
     swapChainImageFormat = VK_FORMAT_B8G8R8A8_UNORM;
@@ -391,6 +402,27 @@ void VulkanEngine::DestroySwapChain()
     for (int i = 0; i < _swapchainImageViews.size(); i++) {
 
         vkDestroyImageView(Device, _swapchainImageViews[i], nullptr);
+    }
+}
+
+void VulkanEngine::InitCommands()
+{
+    VkCommandPoolCreateInfo commandPoolInfo = {};
+    commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    commandPoolInfo.pNext = nullptr;
+    commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    commandPoolInfo.queueFamilyIndex = indices.GraphicIndex.value();
+    for(int32_t i=0; i<FRAME_OVERLAP;i++)
+    {
+        VK_CHECK(vkCreateCommandPool(Device, &commandPoolInfo, nullptr, &frame[i].commandPool))
+
+        VkCommandBufferAllocateInfo cmdAllocInfo = {};
+        cmdAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        cmdAllocInfo.pNext = nullptr;
+        cmdAllocInfo.commandPool = frame[i].commandPool;
+        cmdAllocInfo.commandBufferCount = 1;
+        cmdAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        VK_CHECK(vkAllocateCommandBuffers(Device, &cmdAllocInfo, &frame[i].mainCommmandBuffer))
     }
 }
 
