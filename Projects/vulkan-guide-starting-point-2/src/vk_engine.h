@@ -21,6 +21,9 @@ struct FrameData
 {
 	VkCommandPool commandPool;
 	VkCommandBuffer mainCommmandBuffer;
+
+	VkSemaphore SwapChainSemaphore, RenderSemaphore;
+	VkFence RenderFence;
 };
 
 constexpr unsigned int FRAME_OVERLAP = 2;
@@ -69,6 +72,7 @@ private:
 	void DestroySwapChain();
 
 	void InitCommands();
+	void InitSyncStructures();
 	//-----------------
 	//std::unique_ptr<VkInstance> VkIns = nullptr;
 	VkInstance VkIns;
